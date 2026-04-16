@@ -1,0 +1,1 @@
+# Carga de variables de entorno (Zero Trust)
