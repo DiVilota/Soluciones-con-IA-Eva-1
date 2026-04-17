@@ -1,5 +1,4 @@
 # Ingeniería de Soluciones con Inteligencia Artificial
-# Dependencias del curso
 
 # --- LLMs y APIs ---
 openai>=1.0.0
@@ -33,9 +32,10 @@ streamlit>=1.30.0
 requests>=2.31.0
 httpx>=0.25.0
 
-# --- Utilidades ---
+# --- Utilidades y UX ---
 python-dotenv>=1.0.0
 pydantic>=2.0.0
+rich>=13.0.0
 
 # --- Jupyter ---
 jupyter>=1.0.0

@@ -1,1 +1,111 @@
 # Cliente LLM y Memoria (Singleton)
+import os
+import time
+import asyncio
+from typing import Dict, List
+from dotenv import load_dotenv
+
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_core.chat_history import BaseChatMessageHistory
+from langchain_core.messages import BaseMessage
+
+from rich.console import Console
+from rich.markdown import Markdown
+from rich.rule import Rule
+from rich.live import Live
+
+# Importamos el prompt y la configuración
+from src.prompts import HARDIBOT_SYSTEM_PROMPT
+
+load_dotenv(override=True)
+
+# =====================================================================
+# 1. CONFIGURACIÓN DEL MODELO 
+# =====================================================================
+llm = ChatOpenAI(
+    base_url=os.getenv("OPENAI_BASE_URL"),
+    api_key=os.getenv("GITHUB_TOKEN"),
+    model="gpt-4o",         
+    temperature=0.4,        
+    max_tokens=800,
+    streaming=True 
+)
+
+# =====================================================================
+# 2. GESTIÓN DE MEMORIA Y SESIONES 
+# =====================================================================
+class WindowChatMessageHistory(BaseChatMessageHistory):
+    def __init__(self, k: int = 4):
+        self.k = k
+        self._messages = []
+    
+    @property
+    def messages(self):
+        return self._messages[-(self.k * 2):]
+    
+    def add_message(self, message):
+        self._messages.append(message)
+    
+    def clear(self):
+        self._messages.clear()
+
+store = {}
+def get_session_history(session_id: str) -> BaseChatMessageHistory:
+    if session_id not in store:
+        store[session_id] = WindowChatMessageHistory(k=4)
+    return store[session_id]
+
+# =====================================================================
+# 3. CONSTRUCCIÓN DE CADENA Y CONTEXTO DE PROMPT
+# =====================================================================
+prompt = ChatPromptTemplate.from_messages([
+    ("system", HARDIBOT_SYSTEM_PROMPT),
+    MessagesPlaceholder(variable_name="chat_history"),
+    ("human", "{input}")
+])
+
+chain = prompt | llm
+conversation = RunnableWithMessageHistory(
+    chain,
+    get_session_history,
+    input_messages_key="input",
+    history_messages_key="chat_history"
+)
+
+# =====================================================================
+# 4. CAPA DE PRESENTACIÓN Y STREAMING CON RICH
+# =====================================================================
+console = Console()
+
+async def chat_hardibot(user_input: str, session_id: str = "eval_session"):
+    console.print(Rule(title="🤖 HardiBot", style="bold blue", align="left"))
+    respuesta_completa = ""
+    start_time = time.time()
+    
+    try:
+        with Live(Markdown("⏳ *Procesando...*"), console=console, refresh_per_second=15) as live:
+            async for chunk in conversation.astream(
+                {"input": user_input},
+                config={"configurable": {"session_id": session_id}}
+            ):
+                respuesta_completa += chunk.content
+                live.update(Markdown(respuesta_completa))
+    except Exception as e:
+        console.print(f"\n[bold red]❌ Error:[/bold red] {e}")
+
+    total_time = time.time() - start_time
+    console.print(Rule(style="dim"))
+    console.print(f"[dim]⚡ Inferencia completada en {total_time:.2f}s[/dim]")
+
+def iniciar_loop():
+    print("=" * 60)
+    print(" 🖥️  HardiBot CLI - Modo Producción")
+    print("=" * 60)
+    while True:
+        try:
+            user_input = input("\n👤 Tú: ").strip()
+            if user_input.lower() in ["salir", "exit"]: break
+            asyncio.run(chat_hardibot(user_input))
+        except KeyboardInterrupt: break
