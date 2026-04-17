@@ -1,4 +1,3 @@
-# Cliente LLM y Memoria (Singleton)
 import os
 import time
 import asyncio
@@ -16,26 +15,28 @@ from rich.markdown import Markdown
 from rich.rule import Rule
 from rich.live import Live
 
-# Importamos el prompt y la configuración
 from src.prompts import HARDIBOT_SYSTEM_PROMPT
+from src.rag_engine import HardiBotRAG  # <-- Importamos el Motor RAG
 
 load_dotenv(override=True)
 
-# =====================================================================
-# 1. CONFIGURACIÓN DEL MODELO 
-# =====================================================================
+console = Console()
+
+# ── 1. Inicialización de RAG ─────────
+motor_rag = HardiBotRAG()
+motor_rag.construir_indice() # Crea el FAISS local al arrancar
+
+# ── 2. Configuración del Modelo ─────────
 llm = ChatOpenAI(
     base_url=os.getenv("OPENAI_BASE_URL"),
     api_key=os.getenv("GITHUB_TOKEN"),
-    model="gpt-4o",         
-    temperature=0.4,        
+    model="gpt-4o",
+    temperature=0.4,
     max_tokens=800,
     streaming=True 
 )
 
-# =====================================================================
-# 2. GESTIÓN DE MEMORIA Y SESIONES 
-# =====================================================================
+# ── 3. Gestión de Memoria ─────────
 class WindowChatMessageHistory(BaseChatMessageHistory):
     def __init__(self, k: int = 4):
         self.k = k
@@ -57,9 +58,7 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
         store[session_id] = WindowChatMessageHistory(k=4)
     return store[session_id]
 
-# =====================================================================
-# 3. CONSTRUCCIÓN DE CADENA Y CONTEXTO DE PROMPT
-# =====================================================================
+# ── 4. Construcción de la Cadena ─────────
 prompt = ChatPromptTemplate.from_messages([
     ("system", HARDIBOT_SYSTEM_PROMPT),
     MessagesPlaceholder(variable_name="chat_history"),
@@ -74,20 +73,23 @@ conversation = RunnableWithMessageHistory(
     history_messages_key="chat_history"
 )
 
-# =====================================================================
-# 4. CAPA DE PRESENTACIÓN Y STREAMING CON RICH
-# =====================================================================
-console = Console()
-
+# ── 5. Interfaz y Streaming ─────────
 async def chat_hardibot(user_input: str, session_id: str = "eval_session"):
     console.print(Rule(title="🤖 HardiBot", style="bold blue", align="left"))
     respuesta_completa = ""
     start_time = time.time()
     
     try:
-        with Live(Markdown("⏳ *Procesando...*"), console=console, refresh_per_second=15) as live:
+        # Primero recupera el contexto de la base de datos antes de pensar
+        contexto_recuperado = motor_rag.recuperar_contexto(user_input, top_k=15)
+        
+        with Live(Markdown("⏳ *Pensando y buscando en catálogo...*"), console=console, refresh_per_second=15) as live:
+            # Segundo, Inyectar la pregunta + el contexto RAG + historial
             async for chunk in conversation.astream(
-                {"input": user_input},
+                {
+                    "input": user_input,
+                    "context": contexto_recuperado  
+                },
                 config={"configurable": {"session_id": session_id}}
             ):
                 respuesta_completa += chunk.content
@@ -101,7 +103,7 @@ async def chat_hardibot(user_input: str, session_id: str = "eval_session"):
 
 def iniciar_loop():
     print("=" * 60)
-    print(" 🖥️  HardiBot CLI - Modo Producción")
+    print(" 🖥️  HardiBot CLI - Modo Producción (RAG Activado)")
     print("=" * 60)
     while True:
         try:

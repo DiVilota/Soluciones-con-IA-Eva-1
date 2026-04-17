@@ -1,0 +1,16 @@
+Categoria,Marca,Modelo,Especificaciones,Precio_CLP,Stock
+Procesador,AMD,Ryzen 5 5600G,AM4 6-Cores 12-Threads 3.9GHz con graficos integrados Radeon,145000,Alta
+Procesador,AMD,Ryzen 7 7800X3D,AM5 8-Cores 16-Threads 4.2GHz 120W TDP Especial para Gaming,390000,Media
+Procesador,Intel,Core i9-14900K,LGA1700 24-Cores 32-Threads 3.2GHz 253W TDP High End,620000,Baja
+Placa_Madre,Asus,Prime A320M-K,AM4 Micro-ATX DDR4 PCIe 3.0 Basica,55000,Alta
+Placa_Madre,MSI,PRO B650-P WIFI,AM5 ATX DDR5 PCIe 4.0,185000,Media
+Placa_Madre,Gigabyte,Z790 AORUS ELITE AX,LGA1700 ATX DDR5 PCIe 5.0 Alta disipacion VRM,280000,Media
+Tarjeta_Video,NVIDIA,RTX 4060 8GB,DLSS 3.0 Ideal para 1080p Ultra,320000,Alta
+Tarjeta_Video,NVIDIA,RTX 4070 Ti SUPER 16GB,Ideal para 1440p y 4K Entry,850000,Baja
+Tarjeta_Video,AMD,Radeon RX 7600 8GB,Competidor directo de RTX 4060 para 1080p,285000,Alta
+Memoria_RAM,Kingston,Fury Beast 16GB (2x8GB) DDR4,3200MHz CL16,48000,Alta
+Memoria_RAM,Corsair,Vengeance 32GB (2x16GB) DDR5,6000MHz CL30 Optimizado AMD EXPO,135000,Media
+Almacenamiento,Western Digital,WD Black SN850X 1TB,SSD NVMe M.2 PCIe 4.0 7300MB/s,105000,Media
+Almacenamiento,Kingston,NV2 1TB,SSD NVMe M.2 PCIe 4.0 3500MB/s Basico,65000,Alta
+Fuente_Poder,Corsair,RM750e,750W 80 Plus Gold Full Modular ATX 3.0,110000,Media
+Fuente_Poder,EVGA,500 W1,500W 80 Plus White No Modular,45000,Alta
