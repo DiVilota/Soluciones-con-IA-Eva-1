@@ -1,0 +1,18 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  hardibot-cli:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hardibot_prod
+    env_file:
+      - .env
+    # Configuraciones CRÍTICAS para aplicaciones CLI interactivas
+    stdin_open: true 
+    tty: true
+    restart: unless-stopped
+    volumes:
+      # Preparamos el volumen para la futura base de datos RAG 
+      - ./data:/app/data
