@@ -86,8 +86,7 @@ HardiBot no solo responde; razona. Se han integrado las 5 técnicas mandatorias 
 
 [ ] Observabilidad y Evaluación: Implementación de métricas de desempeño y trazabilidad de inferencia mediante LangSmith.
 
-<div align="center">
 
 
-<i>Documentación técnica elaborada para Ingeniería de Soluciones con Inteligencia Artificial.</i>
-</div>
+Documentación técnica elaborada para Ingeniería de Soluciones con Inteligencia Artificial.
+Integrantes: Diego Villota e Ignacio Chacón
