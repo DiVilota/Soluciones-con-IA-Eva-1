@@ -1,64 +1,93 @@
-# 🤖 HardiBot - Asistente Técnico RAG (Mercado Chileno)
+<div align="center">
+  <h1>🤖 HardiBot</h1>
+  <p><b>Consultor Experto en Hardware (Duoc UC Edition)</b></p>
+  
+  ![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-blue?logo=python&logoColor=white)
+  ![Docker](https://img.shields.io/badge/Docker-Production_Ready-2496ED?logo=docker&logoColor=white)
+  ![LangChain](https://img.shields.io/badge/LangChain-Enabled-green?logo=chainlink&logoColor=white)
+  ![Duoc UC](https://img.shields.io/badge/Duoc_UC-Ingenier%C3%ADa_en_Inform%C3%A1tica-yellow)
+</div>
 
-![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)
-![LangChain](https://img.shields.io/badge/LangChain-Enabled-green.svg)
-![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o-black.svg)
-![DuocUC](https://img.shields.io/badge/DuocUC-Ingeniería_en_Informática-navy.svg)
+> HardiBot es una solución integral de Inteligencia Artificial diseñada para automatizar la preventa técnica en el mercado de hardware computacional chileno. Utiliza **Razonamiento Lógico (LLM)** mediante modelos de última generación y una arquitectura **Production-Ready** para ofrecer recomendaciones precisas, compatibles y ajustadas a presupuestos locales.
 
-## 📌 Descripción del Proyecto
-HardiBot es un asistente conversacional de alto rendimiento diseñado para cotizar y armar presupuestos de hardware de PC. Este proyecto fue desarrollado como parte de la **Evaluación Parcial N°1** de la asignatura **Ingeniería de Soluciones con IA (ISY0101)**, correspondiente al 5to semestre de Ingeniería en Informática (Mención Desarrollo de Software) en Duoc UC.
+---
 
-El bot opera bajo una arquitectura **RAG (Retrieval-Augmented Generation)**, lo que le permite consultar un inventario local simulado de componentes de hardware en tiempo real, evitando alucinaciones y entregando presupuestos precisos en **Pesos Chilenos (CLP)**.
+## 🛠️ Stack Tecnológico
 
-## 🏗️ Arquitectura y Tecnologías
-Esta solución implementa patrones de diseño modernos utilizados en el sector retail y banca en Chile para asistentes virtuales:
-* **Core LLM:** `gpt-4o` configurado con baja temperatura (`0.2`) para respuestas analíticas y deterministas.
-* **Orquestación:** LangChain.
-* **Base Vectorial en Memoria:** `FAISS` (Facebook AI Similarity Search).
-* **Embeddings:** `text-embedding-3-small` de OpenAI.
-* **UX/UI:** Implementación de **Streaming** de tokens para reducir la latencia percibida (Time To First Token) y uso de la biblioteca `rich` para formateo en consola.
+El proyecto se sustenta en una arquitectura de capas (*Clean Architecture*) integrando las siguientes herramientas:
 
-## 📂 Estructura del Repositorio
+| Capa Arquitectónica | Tecnología Base | Descripción Técnica |
+| :--- | :--- | :--- |
+| **Motor de IA** | `GPT-4o` | Inferencia y razonamiento complejo (OpenAI/Azure). |
+| **Orquestación** | `LangChain` | Gestión de cadenas de pensamiento y pipeline RAG. |
+| **Memoria** | `Window Buffer` | k=4 para control estricto de contexto y ahorro de tokens. |
+| **Presentación** | `Rich` | Streaming asíncrono y renderizado Markdown en CLI. |
+| **Infraestructura** | `Docker` | Contenedorización inmutable mediante Docker Compose. |
+| **Seguridad** | `dotenv` | Enfoque *Zero Trust* para la inyección local de secretos. |
+
+---
+
+## 📂 Arquitectura de Directorios (Scaffolding)
+
 ```text
-📦 soluciones-con-ia-eva-1
- ┣ 📜 desarrollo.ipynb       # Script principal con la implementación del Pipeline RAG y HardiBot.
- ┣ 📜 bibliotecas.ipynb      # Pruebas y validación de entornos/dependencias.
- ┣ 📜 requirements.txt       # Dependencias exactas del proyecto.
- ┣ 📜 .env.example           # Plantilla de variables de entorno (No exponer credenciales reales).
- ┗ 📜 .gitignore             # Exclusión de archivos temporales y entornos virtuales.
+📦 hardibot-core
+├── 📁 data/                # Almacenamiento de catálogos y fuentes para RAG (IL1.2)
+├── 📁 notebooks/           # Experimentación y laboratorios pedagógicos
+│   └── 📄 desarrollo.ipynb # Prototipado inicial de prompts y lógica
+├── 📁 src/                 # Código fuente de producción
+│   ├── 🐍 config.py        # Validador de variables de entorno y seguridad
+│   ├── 🐍 core.py          # Motor asíncrono, gestión de memoria y lógica del LLM
+│   └── 🐍 prompts.py       # Repositorio de Master Prompts (Few-Shot, CoT, XML)
+├── 🐳 Dockerfile           # Manifiesto de construcción de la imagen Linux-Python
+├── ⚙️ docker-compose.yml   # Orquestador de contenedores e inyección de volúmenes
+├── 🐍 main.py              # Entrypoint (Punto de entrada) de la aplicación
+└── 📄 requirements.txt     # Manifiesto de dependencias del ecosistema
+🚀 Guía de Despliegue y Uso
+1. Configuración de Entorno (Zero Trust)
+⚠️ PRECAUCIÓN DE SEGURIDAD: El archivo .env contendrá credenciales críticas de tu proveedor cloud. Jamás debe ser versionado en tu control de código.
 
-⚙️ Requisitos Previos
-Python 3.10 o superior.
+Copia la plantilla y configura tus llaves operativas:
 
-Una cuenta de GitHub para acceder a los modelos vía GitHub Models (o directamente una API Key de OpenAI).
+Bash
+cp .env.example .env
+2. Ejecución Inmutable (Docker Compose)
+Para garantizar la paridad de entornos y prevenir fallos de dependencias cruzadas entre sistemas operativos:
 
-⚙️ Requisitos Previos
-Python 3.10 o superior.
+Bash
+# 1. Construir la imagen aislada de nivel de producción
+docker-compose build
 
-Una cuenta de GitHub para acceder a los modelos vía GitHub Models (o directamente una API Key de OpenAI).
-git clone [https://github.com/tu-usuario/soluciones-con-ia-eva-1.git](https://github.com/tu-usuario/soluciones-con-ia-eva-1.git)
-cd soluciones-con-ia-eva-1
+# 2. Levantar el CLI interactivo (el contenedor se purga automáticamente al salir)
+docker-compose run --rm hardibot-cli
+3. Ejecución Local (Entorno de Desarrollo)
+Si prefieres iterar directamente sobre tu entorno virtual:
 
-2. Crear y activar un entorno virtual (Recomendado):
-# En Windows
-python -m venv venv
-venv\Scripts\activate
-
-# En macOS/Linux
-python3 -m venv venv
-source venv/bin/activate
-
-3. Instalar dependencias:
+Bash
+# Sincronizar el manifiesto de dependencias locales
 pip install -r requirements.txt
 
-4. Configurar variables de entorno:
+# Inicializar el orquestador principal
+python main.py
+🧠 Ingeniería de Prompts (IL1.1 / IL1.2)
+HardiBot no solo responde; razona. Se han integrado las 5 técnicas mandatorias del curso de Duoc UC dentro de un Master Prompt consolidado:
 
-Copia el archivo .env.example y renómbralo a .env.
+🎯 Zero-Shot: Definición estricta de la "Persona" del Ingeniero Senior y restricciones del mercado chileno.
 
-Inserta tus credenciales:
-OPENAI_BASE_URL="[https://models.inference.ai.azure.com](https://models.inference.ai.azure.com)"
-GITHUB_TOKEN="tu_token_aqui"
+📚 Few-Shot: Inyección de vectores de ejemplo para estandarizar respuestas ante presupuestos inviables o cuellos de botella térmicos.
 
-### Integrantes
-Diego Villota
-Ignacio Chacón
+🔗 Chain-of-Thought (CoT): Desglose matemático y lógico paso a paso previo a la estructuración de la cotización final.
+
+⚙️ Advanced XML Tags: Implementación de la etiqueta <analisis_tecnico> para aislar el proceso cognitivo del output visual del usuario final.
+
+📐 Prompt Optimization: Formateo de salida riguroso en tablas Markdown para reducción de tokens y legibilidad óptima.
+
+📈 Roadmap y Próximos Sprints (Fase 2)
+[ ] Implementación RAG: Conexión con base de datos vectorial (FAISS) para ingesta y recuperación de precios reales de tiendas nacionales.
+
+[ ] Observabilidad y Evaluación: Implementación de métricas de desempeño y trazabilidad de inferencia mediante LangSmith.
+
+<div align="center">
+
+
+<i>Documentación técnica elaborada para Ingeniería de Soluciones con Inteligencia Artificial.</i>
+</div>
