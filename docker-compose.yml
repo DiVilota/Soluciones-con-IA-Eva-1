@@ -13,6 +13,8 @@ services:
     stdin_open: true 
     tty: true
     restart: unless-stopped
+    ports:
+      - "8501:8501" # Exponemos el puerto para la interfaz web de Streamlit
     volumes:
       # Preparamos el volumen para la futura base de datos RAG 
       - ./data:/app/data
