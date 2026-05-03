@@ -1,30 +1,28 @@
 import os
 import time
 import asyncio
-from typing import Dict, List
 from dotenv import load_dotenv
 
 from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.runnables.history import RunnableWithMessageHistory
-from langchain_core.chat_history import BaseChatMessageHistory
-from langchain_core.messages import BaseMessage
-
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.rule import Rule
 from rich.live import Live
 
 from src.prompts import HARDIBOT_SYSTEM_PROMPT
-from src.rag_engine import HardiBotRAG  # <-- Importamos el Motor RAG
+from src.rag_engine import HardiBotRAG
+
+# --- Importaciones Modernas (LangGraph + LangChain Core) ---
+from langchain_core.tools import tool
+from langgraph.prebuilt import create_react_agent
+from langgraph.checkpoint.memory import MemorySaver
 
 load_dotenv(override=True)
-
 console = Console()
 
 # ── 1. Inicialización de RAG ─────────
 motor_rag = HardiBotRAG()
-motor_rag.construir_indice()  # Crea el FAISS local al arrancar
+motor_rag.construir_indice()
 
 # ── 2. Configuración del Modelo ─────────
 llm = ChatOpenAI(
@@ -37,72 +35,58 @@ llm = ChatOpenAI(
 )
 
 
-# ── 3. Gestión de Memoria ─────────
-class WindowChatMessageHistory(BaseChatMessageHistory):
-    def __init__(self, k: int = 4):
-        self.k = k
-        self._messages = []
-
-    @property
-    def messages(self):
-        return self._messages[-(self.k * 2) :]
-
-    def add_message(self, message):
-        self._messages.append(message)
-
-    def clear(self):
-        self._messages.clear()
+# ── 3. Definición de Herramientas (Tools) ─────────
+@tool
+def buscar_catalogo(query: str) -> str:
+    """
+    Usa esta herramienta SIEMPRE que el usuario pregunte por componentes,
+    precios, stock o compatibilidad de hardware.
+    """
+    return motor_rag.recuperar_contexto(query, top_k=5)
 
 
-store = {}
+@tool
+def calcular_presupuesto(operacion: str) -> str:
+    """
+    Usa esta herramienta para sumar o multiplicar los precios de los componentes.
+    Ingresa SOLO la operación matemática en formato Python (ejemplo: 145000 + 55000).
+    """
+    try:
+        return str(eval(operacion, {"__builtins__": None}, {}))
+    except Exception as e:
+        return f"Error en cálculo: {e}"
 
 
-def get_session_history(session_id: str) -> BaseChatMessageHistory:
-    if session_id not in store:
-        store[session_id] = WindowChatMessageHistory(k=4)
-    return store[session_id]
+herramientas = [buscar_catalogo, calcular_presupuesto]
+# ── 4. Construcción del Agente (LangGraph) ─────────
+memoria = MemorySaver()
 
-
-# ── 4. Construcción de la Cadena ─────────
-prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", HARDIBOT_SYSTEM_PROMPT),
-        MessagesPlaceholder(variable_name="chat_history"),
-        ("human", "{input}"),
-    ]
-)
-
-chain = prompt | llm
-conversation = RunnableWithMessageHistory(
-    chain,
-    get_session_history,
-    input_messages_key="input",
-    history_messages_key="chat_history",
+agent_executor = create_react_agent(
+    model=llm,
+    tools=herramientas,
+    prompt=HARDIBOT_SYSTEM_PROMPT,  # <--- SOLUCIONADO
+    checkpointer=memoria,
 )
 
 
 # ── 5. Interfaz y Streaming ─────────
 async def chat_hardibot(user_input: str, session_id: str = "eval_session"):
     console.print(Rule(title="🤖 HardiBot", style="bold blue", align="left"))
-    respuesta_completa = ""
     start_time = time.time()
 
     try:
-        # Primero recupera el contexto de la base de datos antes de pensar
-        contexto_recuperado = motor_rag.recuperar_contexto(user_input, top_k=15)
-
         with Live(
-            Markdown("⏳ *Pensando y buscando en catálogo...*"),
+            Markdown("⏳ *Analizando y ejecutando herramientas...*"),
             console=console,
             refresh_per_second=15,
         ) as live:
-            # Segundo, Inyectar la pregunta + el contexto RAG + historial
-            async for chunk in conversation.astream(
-                {"input": user_input, "context": contexto_recuperado},
-                config={"configurable": {"session_id": session_id}},
-            ):
-                respuesta_completa += chunk.content
-                live.update(Markdown(respuesta_completa))
+            # LangGraph usa un formato de "messages" y agrupa el historial por "thread_id"
+            respuesta = agent_executor.invoke(
+                {"messages": [("user", user_input)]},
+                config={"configurable": {"thread_id": session_id}},
+            )
+            # Imprime el último mensaje (la respuesta final del bot)
+            live.update(Markdown(respuesta["messages"][-1].content))
     except Exception as e:
         console.print(f"\n[bold red]❌ Error:[/bold red] {e}")
 
@@ -113,7 +97,7 @@ async def chat_hardibot(user_input: str, session_id: str = "eval_session"):
 
 def iniciar_loop():
     print("=" * 60)
-    print(" 🖥️  HardiBot CLI - Modo Producción (RAG Activado)")
+    print(" 🖥️  HardiBot CLI - Modo Producción (LangGraph Agent)")
     print("=" * 60)
     while True:
         try:
@@ -124,20 +108,19 @@ def iniciar_loop():
         except KeyboardInterrupt:
             break
 
-    "Función de streaming sincrónico para Streamlit."
-
 
 def chat_hardibot_stream_sync(user_input: str, session_id: str = "streamlit_session"):
     """
-    Generador sincrono para Streamlit.
+    Generador sincrono para Streamlit adaptado a LangGraph.
     """
-    # 1. Recuperar contexto (¡Aprovechamos de bajar el top_k a 5 para ahorrar tokens!)
-    contexto_recuperado = motor_rag.recuperar_contexto(user_input, top_k=5)
+    respuesta = agent_executor.invoke(
+        {"messages": [("user", user_input)]},
+        config={"configurable": {"thread_id": session_id}},
+    )
 
-    # 2. Hacemos stream de la respuesta
-    for chunk in conversation.stream(
-        {"input": user_input, "context": contexto_recuperado},
-        config={"configurable": {"session_id": session_id}},
-    ):
-        # Yield entrega pedacitos de texto para el efecto de "escribiendo en vivo"
-        yield chunk.content
+    texto_final = respuesta["messages"][-1].content
+
+    # Efecto de escritura para Streamlit
+    for palabra in texto_final.split(" "):
+        yield palabra + " "
+        time.sleep(0.02)

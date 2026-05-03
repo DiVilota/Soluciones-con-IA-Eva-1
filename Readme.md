@@ -1,92 +1,78 @@
 <div align="center">
-  <h1>🤖 HardiBot</h1>
-  <p><b>Consultor Experto en Hardware (Duoc UC Edition)</b></p>
+  <h1>🤖 HardiBot v3.0 (Fase IL2.1)</h1>
+  <p><b>Arquitectura de Agentes Inteligentes con LangGraph & Streamlit</b></p>
   
   ![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-blue?logo=python&logoColor=white)
   ![Docker](https://img.shields.io/badge/Docker-Production_Ready-2496ED?logo=docker&logoColor=white)
-  ![LangChain](https://img.shields.io/badge/LangChain-Enabled-green?logo=chainlink&logoColor=white)
+  ![LangGraph](https://img.shields.io/badge/LangGraph-Agentic_AI-orange?logo=langchain&logoColor=white)
+  ![Streamlit](https://img.shields.io/badge/Streamlit-Web_UI-FF4B4B?logo=streamlit&logoColor=white)
   ![Duoc UC](https://img.shields.io/badge/Duoc_UC-Ingenier%C3%ADa_en_Inform%C3%A1tica-yellow)
 </div>
 
-> HardiBot es una solución integral de Inteligencia Artificial diseñada para automatizar la preventa técnica en el mercado de hardware computacional chileno. Utiliza **Razonamiento Lógico (LLM)** mediante modelos de última generación y una arquitectura **Production-Ready** para ofrecer recomendaciones precisas, compatibles y ajustadas a presupuestos locales.
+> **Actualización IL2.1:** HardiBot ha evolucionado de una cadena estática a un **Agente Inteligente**. Ahora utiliza el ciclo de razonamiento ReAct impulsado por **LangGraph**, es capaz de decidir cuándo usar herramientas externas (Búsqueda en Catálogo FAISS o Calculadora de Presupuestos) y cuenta con una interfaz web moderna mediante **Streamlit**.
 
 ---
 
-## 🛠️ Stack Tecnológico
+## 🛠️ Stack Tecnológico Actualizado
 
-El proyecto se sustenta en una arquitectura de capas (*Clean Architecture*) integrando las siguientes herramientas:
-
-| Capa Arquitectónica | Tecnología Base | Descripción Técnica |
-| :--- | :--- | :--- |
-| **Motor de IA** | `GPT-4o` | Inferencia y razonamiento complejo (OpenAI/Azure). |
-| **Orquestación** | `LangChain` | Gestión de cadenas de pensamiento y pipeline RAG. |
-| **Memoria** | `Window Buffer` | k=4 para control estricto de contexto y ahorro de tokens. |
-| **Presentación** | `Rich` | Streaming asíncrono y renderizado Markdown en CLI. |
-| **Infraestructura** | `Docker` | Contenedorización inmutable mediante Docker Compose. |
-| **Seguridad** | `dotenv` | Enfoque *Zero Trust* para la inyección local de secretos. |
+| Capa Arquitectónica      | Tecnología Base    | Descripción Técnica                                                             |
+| :----------------------- | :----------------- | :------------------------------------------------------------------------------ |
+| **Motor de IA**          | `GPT-4o`           | Inferencia y razonamiento complejo vía GitHub Models API.                       |
+| **Orquestación Agentic** | `LangGraph`        | Máquina de estados para control de flujo y ciclo ReAct.                         |
+| **Herramientas (Tools)** | `Function Calling` | Herramientas de RAG (`buscar_catalogo`) y matemáticas (`calcular_presupuesto`). |
+| **Presentación**         | `Streamlit`        | Interfaz gráfica web con streaming de texto asíncrono.                          |
+| **Observabilidad**       | `LangSmith`        | Trazabilidad completa de _tokens_, latencia y uso de herramientas en _backend_. |
+| **Infraestructura**      | `Docker`           | Contenedorización inmutable mapeada al puerto 8501.                             |
 
 ---
 
-## 📂 Arquitectura de Directorios (Scaffolding)
+## 🚀 Guía de Despliegue Rápido (Para Colaboradores)
 
-```text
-📦 hardibot-core
-├── 📁 data/                # Almacenamiento de catálogos y fuentes para RAG (IL1.2)
-├── 📁 notebooks/           # Experimentación y laboratorios pedagógicos
-│   └── 📄 desarrollo.ipynb # Prototipado inicial de prompts y lógica
-├── 📁 src/                 # Código fuente de producción
-│   ├── 🐍 config.py        # Validador de variables de entorno y seguridad
-│   ├── 🐍 core.py          # Motor asíncrono, gestión de memoria y lógica del LLM
-│   └── 🐍 prompts.py       # Repositorio de Master Prompts (Few-Shot, CoT, XML)
-├── 🐳 Dockerfile           # Manifiesto de construcción de la imagen Linux-Python
-├── ⚙️ docker-compose.yml   # Orquestador de contenedores e inyección de volúmenes
-├── 🐍 main.py              # Entrypoint (Punto de entrada) de la aplicación
-└── 📄 requirements.txt     # Manifiesto de dependencias del ecosistema
-🚀 Guía de Despliegue y Uso
-1. Configuración de Entorno (Zero Trust)
-⚠️ PRECAUCIÓN DE SEGURIDAD: El archivo .env contendrá credenciales críticas de tu proveedor cloud. Jamás debe ser versionado en tu control de código.
+### 1. Configuración de Entorno (Requisito Crítico)
 
-Copia la plantilla y configura tus llaves operativas:
+Para esta versión, es **obligatorio** configurar las variables de LangSmith en tu archivo `.env` para poder monitorear los "pensamientos" del agente.
 
-Bash
-cp .env.example .env
+Asegúrate de que tu archivo `.env` contenga lo siguiente:
+
+```env
+# --- GitHub Models API ---
+OPENAI_BASE_URL="[https://models.inference.ai.azure.com](https://models.inference.ai.azure.com)"
+GITHUB_TOKEN="tu_token_aqui"
+
+# --- LangSmith (Observabilidad) ---
+LANGCHAIN_TRACING_V2="true"
+LANGCHAIN_API_KEY="tu_api_key_de_langsmith_aqui"
+LANGCHAIN_PROJECT="ingenieria_soluciones_con_ia"
+LANGCHAIN_ENDPOINT="[https://api.smith.langchain.com](https://api.smith.langchain.com)"
 2. Ejecución Inmutable (Docker Compose)
-Para garantizar la paridad de entornos y prevenir fallos de dependencias cruzadas entre sistemas operativos:
+Dado que actualizamos drásticamente las versiones en requirements.txt (Migración a LangChain/LangGraph 0.3.x), la primera vez debes construir la imagen sin usar caché local:
 
 Bash
-# 1. Construir la imagen aislada de nivel de producción
-docker-compose build
+# 1. Construir la imagen asegurando dependencias limpias
+docker-compose build --no-cache
 
-# 2. Levantar el CLI interactivo (el contenedor se purga automáticamente al salir)
-docker-compose run --rm hardibot-cli
-3. Ejecución Local (Entorno de Desarrollo)
-Si prefieres iterar directamente sobre tu entorno virtual:
+# 2. Levantar el servidor web
+docker-compose up
+3. Acceso a la Aplicación
+Una vez que la terminal indique que el contenedor está corriendo, abre tu navegador web e ingresa a:
+👉 http://localhost:8501
 
-Bash
-# Sincronizar el manifiesto de dependencias locales
-pip install -r requirements.txt
+🔬 ¿Cómo evaluar a HardiBot en esta fase?
+Dado que la consola ahora es silenciosa (LangGraph procesa los estados internamente), el testing se realiza mediante LangSmith.
 
-# Inicializar el orquestador principal
-python main.py
-🧠 Ingeniería de Prompts (IL1.1 / IL1.2)
-HardiBot no solo responde; razona. Se han integrado las 5 técnicas mandatorias del curso de Duoc UC dentro de un Master Prompt consolidado:
+Hazle una pregunta en la interfaz de Streamlit (Ej: "Cotízame un Ryzen 5 5600G y una placa Asus A320M-K y dame el total").
 
-🎯 Zero-Shot: Definición estricta de la "Persona" del Ingeniero Senior y restricciones del mercado chileno.
+Ve a tu cuenta de LangSmith -> Proyecto ingenieria_soluciones_con_ia.
 
-📚 Few-Shot: Inyección de vectores de ejemplo para estandarizar respuestas ante presupuestos inviables o cuellos de botella térmicos.
+Haz clic en el Run más reciente para visualizar el Trace.
 
-🔗 Chain-of-Thought (CoT): Desglose matemático y lógico paso a paso previo a la estructuración de la cotización final.
+Podrás ver en tiempo real:
 
-⚙️ Advanced XML Tags: Implementación de la etiqueta <analisis_tecnico> para aislar el proceso cognitivo del output visual del usuario final.
+El ahorro de tokens cuando no usa herramientas (ej. al saludar).
 
-📐 Prompt Optimization: Formateo de salida riguroso en tablas Markdown para reducción de tokens y legibilidad óptima.
+Cómo invoca la herramienta RAG y qué fragmentos del CSV extrae.
 
-📈 Roadmap y Próximos Sprints (Fase 2)
-[ ] Implementación RAG: Conexión con base de datos vectorial (FAISS) para ingesta y recuperación de precios reales de tiendas nacionales.
-
-[ ] Observabilidad y Evaluación: Implementación de métricas de desempeño y trazabilidad de inferencia mediante LangSmith.
-
-
-
+Cómo invoca la herramienta de cálculo matemático para asegurar una suma exacta.
 Documentación técnica elaborada para Ingeniería de Soluciones con Inteligencia Artificial.
 Integrantes: Diego Villota e Ignacio Chacón
+```
