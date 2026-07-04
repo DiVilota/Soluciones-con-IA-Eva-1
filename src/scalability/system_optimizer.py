@@ -1,4 +1,5 @@
 import time
+import os
 import pandas as pd
 
 from src.scalability.cache_llm import CacheLLM
@@ -9,11 +10,14 @@ from src.scalability.resilience import RetryConBackoff
 from src.scalability.cost_calculator import CalculadorCostos
 from src.scalability.sustainability_report import ReporteSostenibilidad
 
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_CACHE_DIR = os.path.join(_PROJECT_ROOT, "data", "cache")
+
 
 class SistemaOptimizado:
     def __init__(self):
-        self.cache_llm = CacheLLM(max_size=100)
-        self.cache_semantico = CacheSemantico(umbral=0.85, ttl=3600)
+        self.cache_llm = CacheLLM(max_size=100, cache_file=os.path.join(_CACHE_DIR, "optimizer_llm_cache.json"))
+        self.cache_semantico = CacheSemantico(umbral=0.85, ttl=3600, cache_file=os.path.join(_CACHE_DIR, "optimizer_semantic_cache.json"))
         self.calculador_costos = CalculadorCostos(presupuesto_diario=100.0)
         self.reporte = ReporteSostenibilidad()
         self.retry = RetryConBackoff(max_reintentos=3, base=0.5)

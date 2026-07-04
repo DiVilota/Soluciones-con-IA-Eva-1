@@ -15,8 +15,10 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 # Copiar exclusivamente los binarios de producción
 COPY src/ ./src/
+COPY ui/ ./ui/
 COPY main.py .
 COPY app.py .
+COPY assets/ ./assets/
 
 # Comando de ejecución para Streamlit, exponiendo el puerto 8501
 CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]

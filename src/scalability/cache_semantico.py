@@ -1,3 +1,5 @@
+import json
+import os
 import re
 import time
 from collections import Counter
@@ -12,12 +14,32 @@ class EntradaCache:
         self.tokens_ahorrados = max(len(respuesta) // 4, 1)
         self.accesos = 0
 
+    def to_dict(self):
+        return {
+            "consulta": self.consulta,
+            "respuesta": self.respuesta,
+            "timestamp": self.timestamp,
+            "ttl": self.ttl,
+            "tokens_ahorrados": self.tokens_ahorrados,
+            "accesos": self.accesos,
+        }
+
+    @classmethod
+    def from_dict(cls, d):
+        e = cls(d["consulta"], d["respuesta"], d["timestamp"], d["ttl"])
+        e.tokens_ahorrados = d.get("tokens_ahorrados", e.tokens_ahorrados)
+        e.accesos = d.get("accesos", 0)
+        return e
+
 
 class CacheSemantico:
-    def __init__(self, umbral: float = 0.85, ttl: int = 3600):
+    def __init__(self, umbral: float = 0.85, ttl: int = 3600, cache_file: str = None):
         self.umbral = umbral
         self.ttl = ttl
         self.entradas: dict[str, EntradaCache] = {}
+        self._cache_file = cache_file
+        if cache_file:
+            self._cargar_desde_disco()
 
     def _normalizar(self, texto: str) -> str:
         texto = texto.lower()
@@ -65,6 +87,7 @@ class CacheSemantico:
         if mejor_clave and mejor_sim >= self.umbral:
             entrada = self.entradas[mejor_clave]
             entrada.accesos += 1
+            self._persistir()
             return entrada.respuesta
         return None
 
@@ -76,6 +99,7 @@ class CacheSemantico:
             timestamp=time.time(),
             ttl=self.ttl,
         )
+        self._persistir()
 
     def limpiar_expirados(self):
         ahora = time.time()
@@ -93,3 +117,30 @@ class CacheSemantico:
             "total_accesos": total_accesos,
             "total_tokens_ahorrados": total_tokens,
         }
+
+    def _cargar_desde_disco(self):
+        if not os.path.exists(self._cache_file):
+            return
+        try:
+            with open(self._cache_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            ahora = time.time()
+            for item in data.get("entries", []):
+                entrada = EntradaCache.from_dict(item)
+                if ahora - entrada.timestamp < entrada.ttl:
+                    self.entradas[self._normalizar(entrada.consulta)] = entrada
+        except Exception:
+            pass
+
+    def _persistir(self):
+        if not self._cache_file:
+            return
+        try:
+            os.makedirs(os.path.dirname(self._cache_file), exist_ok=True)
+            data = {
+                "entries": [e.to_dict() for e in self.entradas.values()],
+            }
+            with open(self._cache_file, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False)
+        except Exception:
+            pass

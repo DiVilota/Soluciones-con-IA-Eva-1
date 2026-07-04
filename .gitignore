@@ -42,6 +42,8 @@ data/sesiones/
 data/usuarios/
 data/usuarios.json
 data/hardibot.db
+data/faiss_index/
+data/cache/
 
 # Logs y métricas de runtime
 logs/

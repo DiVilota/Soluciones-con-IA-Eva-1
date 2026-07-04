@@ -1,13 +1,18 @@
 import hashlib
+import json
+import os
 from collections import OrderedDict
 
 
 class CacheLLM:
-    def __init__(self, max_size: int = 100):
+    def __init__(self, max_size: int = 100, cache_file: str = None):
         self.max_size = max_size
         self._cache: OrderedDict = OrderedDict()
         self._hits = 0
         self._misses = 0
+        self._cache_file = cache_file
+        if cache_file:
+            self._cargar_desde_disco()
 
     def _hash(self, prompt: str, modelo: str) -> str:
         raw = f"{prompt}|{modelo}".encode("utf-8")
@@ -21,6 +26,7 @@ class CacheLLM:
             if len(self._cache) >= self.max_size:
                 self._cache.popitem(last=False)
         self._cache[clave] = respuesta
+        self._persistir()
 
     def obtener(self, prompt: str, modelo: str):
         clave = self._hash(prompt, modelo)
@@ -45,3 +51,31 @@ class CacheLLM:
         self._cache.clear()
         self._hits = 0
         self._misses = 0
+
+    def _cargar_desde_disco(self):
+        if not os.path.exists(self._cache_file):
+            return
+        try:
+            with open(self._cache_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            for item in data.get("entries", []):
+                self._cache[item["key"]] = item["value"]
+            self._hits = data.get("hits", 0)
+            self._misses = data.get("misses", 0)
+        except Exception:
+            pass
+
+    def _persistir(self):
+        if not self._cache_file:
+            return
+        try:
+            os.makedirs(os.path.dirname(self._cache_file), exist_ok=True)
+            data = {
+                "entries": [{"key": k, "value": v} for k, v in self._cache.items()],
+                "hits": self._hits,
+                "misses": self._misses,
+            }
+            with open(self._cache_file, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False)
+        except Exception:
+            pass

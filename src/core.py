@@ -45,6 +45,9 @@ from src.scalability.system_optimizer import SistemaOptimizado
 load_dotenv(override=True)
 console = Console()
 
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_CACHE_DIR = os.path.join(_PROJECT_ROOT, "data", "cache")
+
 logger_obs = LoggerEstructurado(
     nombre="hardibot",
     log_dir=os.getenv("OBSERVABILITY_LOG_DIR", "logs"),
@@ -53,8 +56,8 @@ logger_obs = LoggerEstructurado(
 recolector_obs = RecolectorMetricas()
 sistema_alertas = SistemaAlertas()
 
-cache_llm = CacheLLM(max_size=100)
-cache_semantico = CacheSemantico(umbral=0.85, ttl=3600)
+cache_llm = CacheLLM(max_size=100, cache_file=os.path.join(_CACHE_DIR, "llm_cache.json"))
+cache_semantico = CacheSemantico(umbral=0.85, ttl=3600, cache_file=os.path.join(_CACHE_DIR, "semantic_cache.json"))
 procesador_lotes = ProcesadorLotes(tamano_lote=5)
 calculador_costos = CalculadorCostos(presupuesto_diario=100.0)
 reporte_sostenibilidad = ReporteSostenibilidad()

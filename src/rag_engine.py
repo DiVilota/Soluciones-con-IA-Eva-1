@@ -11,6 +11,9 @@ console = Console(no_color=True, force_terminal=False)
 load_dotenv(override=True)
 
 CATALOGO_POR_DEFECTO = "data/catalogo_hardware.csv"
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_DATA_DIR = os.path.join(_PROJECT_ROOT, "data")
+FAISS_INDEX_DIR = os.path.join(_DATA_DIR, "faiss_index")
 
 
 class HardiBotRAG:
@@ -27,7 +30,36 @@ class HardiBotRAG:
         except Exception as e:
             console.print(f"[red]Error al cargar Embeddings: {e}[/red]")
 
+    def _indice_guardado_valido(self):
+        return os.path.isdir(FAISS_INDEX_DIR) and os.path.exists(os.path.join(FAISS_INDEX_DIR, "index.faiss"))
+
+    def _cargar_indice_guardado(self):
+        if not self._indice_guardado_valido():
+            return False
+        try:
+            self.vector_store = FAISS.load_local(
+                FAISS_INDEX_DIR, self.embeddings, allow_dangerous_deserialization=True
+            )
+            console.print(f"[bold green]Indice FAISS cargado desde disco: {FAISS_INDEX_DIR}[/bold green]")
+            return True
+        except Exception as e:
+            console.print(f"[yellow]No se pudo cargar indice FAISS guardado: {e}. Reconstruyendo...[/yellow]")
+            return False
+
+    def _guardar_indice(self):
+        if self.vector_store is None:
+            return
+        try:
+            os.makedirs(FAISS_INDEX_DIR, exist_ok=True)
+            self.vector_store.save_local(FAISS_INDEX_DIR)
+            console.print(f"[dim]Indice FAISS guardado en: {FAISS_INDEX_DIR}[/dim]")
+        except Exception as e:
+            console.print(f"[yellow]No se pudo guardar indice FAISS: {e}[/yellow]")
+
     def construir_indice(self):
+        if self._cargar_indice_guardado():
+            return True
+
         console.print("[dim]Iniciando ingesta de datos (RAG)...[/dim]")
 
         if not os.path.exists(self.data_path):
@@ -56,6 +88,7 @@ class HardiBotRAG:
         try:
             self.vector_store = FAISS.from_documents(documents, self.embeddings)
             console.print(f"[bold green]Indice Vectorial FAISS creado: {len(documents)} productos indexados.[/bold green]")
+            self._guardar_indice()
             return True
         except Exception as e:
             console.print(f"[bold red]Error al vectorizar: {e}[/bold red]")
